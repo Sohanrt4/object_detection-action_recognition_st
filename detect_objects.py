@@ -50,6 +50,7 @@ def detect_objects(input_path, output_path):
         results = model.track(frame, persist=True, verbose=False)
 
         # Process detections
+        person_centers = []
         for result in results:
             boxes = result.boxes
 
@@ -61,6 +62,10 @@ def detect_objects(input_path, output_path):
                 # Only keep person and vehicles
                 if class_id == 0 and confidence > 0.4:
                     x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    center_x = (x1 + x2) // 2
+                    center_y = (y1 + y2) // 2
+
+                    person_centers.append((track_id, center_x, center_y))
 
                     action = predict_action(frame)
                     label = f"ID {track_id} - {TARGET_CLASSES[class_id]} - {action}"
@@ -90,7 +95,25 @@ def detect_objects(input_path, output_path):
                         (0, 0, 0),
                         2
                     )
+        # Tailgating proximity check
+        for i in range(len(person_centers)):
+            for j in range(i + 1, len(person_centers)):
 
+                id1, x1c, y1c = person_centers[i]
+                id2, x2c, y2c = person_centers[j]
+
+                distance = ((x1c - x2c) ** 2 + (y1c - y2c) ** 2) ** 0.5
+
+                if distance < 60:
+                    cv2.putText(
+                        frame,
+                        f"Tailgating Alert: {id1} & {id2}",
+                        (50, 50 + (i * 30)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (0, 0, 255),
+                        2
+                   )
         out.write(frame)
 
         if frame_count % 30 == 0:
