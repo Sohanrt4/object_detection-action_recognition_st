@@ -4,8 +4,7 @@ import argparse
 import os
 from ultralytics import YOLO
 
-# COCO class IDs we want to detect
-# person = 0, bicycle = 1, car = 2, motorcycle = 3, bus = 5, truck = 7
+
 TARGET_CLASSES = {
     0: "person",
     1: "bicycle",
@@ -16,22 +15,22 @@ TARGET_CLASSES = {
 }
 
 def detect_objects(input_path, output_path):
-    # Load YOLOv8 model
-    model = YOLO("yolov8n.pt")  # lightweight and fast
+ 
+    model = YOLO("yolov8n.pt")  
 
-    # Open input video
+   
     cap = cv2.VideoCapture(input_path)
 
     if not cap.isOpened():
         print(f"Error: Unable to open video file: {input_path}")
         return
 
-    # Get video properties
+  
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
 
-    # Define output video writer
+   
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
 
@@ -46,10 +45,9 @@ def detect_objects(input_path, output_path):
 
         frame_count += 1
 
-        # Run YOLO detection on the frame
+    
         results = model.track(frame, persist=True, verbose=False)
 
-        # Process detections
         person_centers = []
         for result in results:
             boxes = result.boxes
@@ -59,7 +57,7 @@ def detect_objects(input_path, output_path):
                 confidence = float(box.conf[0].item())
                 track_id = int(box.id[0].item()) if box.id is not None else -1
 
-                # Only keep person and vehicles
+               
                 if class_id == 0 and confidence > 0.4:
                     x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
                     center_x = (x1 + x2) // 2
@@ -70,10 +68,10 @@ def detect_objects(input_path, output_path):
                     action = predict_action(frame)
                     label = f"ID {track_id} - {TARGET_CLASSES[class_id]} - {action}"
 
-                    # Draw rectangle
+                    
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                    # Draw label background
+                   
                     (text_width, text_height), _ = cv2.getTextSize(
                         label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
                     )
@@ -85,7 +83,7 @@ def detect_objects(input_path, output_path):
                         -1
                     )
 
-                    # Put label text
+                  
                     cv2.putText(
                         frame,
                         label,
@@ -95,7 +93,7 @@ def detect_objects(input_path, output_path):
                         (0, 0, 0),
                         2
                     )
-        # Tailgating proximity check
+        
         for i in range(len(person_centers)):
             for j in range(i + 1, len(person_centers)):
 
