@@ -49,6 +49,7 @@ def detect_objects(input_path, output_path):
         results = model.track(frame, persist=True, verbose=False)
 
         person_centers = []
+        phone_centers = []
         for result in results:
             boxes = result.boxes
 
@@ -56,6 +57,9 @@ def detect_objects(input_path, output_path):
                 class_id = int(box.cls[0].item())
                 confidence = float(box.conf[0].item())
                 track_id = int(box.id[0].item()) if box.id is not None else -1
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                center_x = (x1 + x2) // 2
+                center_y = (y1 + y2) // 2
 
                
                 if class_id == 0 and confidence > 0.4:
@@ -82,6 +86,8 @@ def detect_objects(input_path, output_path):
                         (0, 255, 0),
                         -1
                     )
+                if class_id == 67 and confidence > 0.05:
+                    phone_centers.append((center_x, center_y))
 
                   
                     cv2.putText(
@@ -112,6 +118,24 @@ def detect_objects(input_path, output_path):
                         (0, 0, 255),
                         2
                    )
+                for person in person_centers:
+                    id1, px, py = person
+
+                    for phone in phone_centers:
+                        phx, phy = phone
+
+                        distance = ((px - phx) ** 2 + (py - phy) ** 2) ** 0.5
+
+                        if distance < 100:
+                            cv2.putText(
+                                frame,
+                                f"Phone Usage Alert: ID {id1}",
+                                (50, 100),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                1,
+                                (0, 0, 255),
+                                2
+                            )
         out.write(frame)
 
         if frame_count % 30 == 0:
